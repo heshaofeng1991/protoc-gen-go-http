@@ -1,13 +1,13 @@
 # protoc-gen-go-http
 基于protoc工具生成golang语言http代码
 
-## install
+## 安装
 
 ```shell
 $ go install github.com/heshaofeng1991/protoc-gen-go-http@latest 
 ```
 
-生成代码其它依赖
+## 生成代码其它依赖
 ```shell
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
@@ -15,7 +15,7 @@ go install github.com/mwitkow/go-proto-validators/protoc-gen-govalidators@latest
 go install github.com/heshaofeng1991/protoc-gen-go-http@latest
 ```
 
-## how to use
+## 使用说明
 
 ```shell
 $ make proto
