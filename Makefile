@@ -1,5 +1,10 @@
+GOPATH:=$(shell go env GOPATH)
 
-proto: ## protoc
-	protoc -I/usr/local/include -I$(GOPATH)/src/github.com/googleapis/googleapis\
- 	--proto_path=$(GOPATH)/src:. --go_out=. --go-http_out=. --go-grpc_out=.\
- 	 example/greeter/v1/hello.proto
+.PHONY: proto
+proto:
+	protoc -I=. -I=${GOPATH}/pkg/mod \
+	--go_out=. --go_opt=paths=source_relative \
+    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    --govalidators_out=. --govalidators_opt=paths=source_relative \
+    --go-http_out=. --go-http_opt=paths=source_relative \
+   proto/example/example.proto

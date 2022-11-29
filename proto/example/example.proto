@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+// 指定golang包名
+option go_package = "./;example";
+
+import "github.com/gogo/protobuf@v1.3.2/gogoproto/gogo.proto";
+import "github.com/mwitkow/go-proto-validators@v0.3.2/validator.proto";
+import "google/api/annotations.proto";
+
+package example;
+
+service Example {
+  rpc Add(AddRequest) returns (CommonResponse) {
+    option (google.api.http) = {
+      post: "/v1/add"
+      body: "*"
+    };
+  }
+
+  rpc Get(GetRequest) returns (CommonResponse) {
+    option (google.api.http) = {
+      get: "/v1/get"
+    };
+  }
+}
+
+message AddRequest {
+  uint32 id = 1;
+  string name = 2 [(validator.field) = {string_not_empty: true,length_lt:75}];
+}
+
+message GetRequest {
+  uint32 id = 1;
+}
+
+message CommonResponse {
+  int64 code = 1 [(gogoproto.jsontag) = "code"];
+  string desc = 2 [(gogoproto.jsontag) = "desc"];
+  Empty data = 3 [(gogoproto.jsontag) = "data"];
+}
+
+message Empty{}

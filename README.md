@@ -1,5 +1,4 @@
 # protoc-gen-go-http
-generate go http server code via proto buffer
 
 ## install
 
@@ -17,11 +16,4 @@ $ protoc -I/usr/local/include -I$(GOPATH)/src/github.com/googleapis/googleapis\
  	 path/to/file.proto
 ```
 
-## customize
-
-click [here](https://yusank.github.io/posts/go-protoc-http/) to learn how to deveop a simple protoc plugin.
-
-## TODO
-
-- [ ] support [validate](https://github.com/envoyproxy/protoc-gen-validate)
-- [ ] gen client code.
+基于protoc工具生成golang语言http代码
