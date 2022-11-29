@@ -6,114 +6,100 @@ import (
 	"text/template"
 )
 
-var httpTemplate = `
+var ginTemplate = `
 {{$svrType := .ServiceType}}
 {{$svrName := .ServiceName}}
 
-{{- range .MethodSets}}
-const Operation{{$svrType}}{{.OriginalName}} = "/{{$svrName}}/{{.OriginalName}}"
-{{- end}}
-
-type {{.ServiceType}}HTTPServer interface {
-{{- range .MethodSets}}
-	{{.Name}}(context.Context, *{{.Request}}) (*{{.Reply}}, error)
+// 这里定义 handler interface
+type {{.ServiceType}}HTTPHandler interface {
+{{- range .Methods}}
+    {{.Name}}(context.Context, *{{.Request}}) (*{{.Reply}}, error)
 {{- end}}
 }
 
-func Register{{.ServiceType}}HTTPServer(s *http.Server, srv {{.ServiceType}}HTTPServer) {
-	r := s.Route("/")
-	{{- range .Methods}}
-	r.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(srv))
-	{{- end}}
+// Register{{.ServiceType}}HTTPHandler define http router handle by gin. 
+// 注册路由 handler
+func Register{{.ServiceType}}HTTPHandler(g *gin.RouterGroup, srv {{.ServiceType}}HTTPHandler) {
+    {{- range .Methods}}
+    g.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(srv))
+    {{- end}}
+}
+
+// 定义 handler
+// 遍历之前解析到所有 rpc 方法信息
+{{range .Methods}}
+func _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(srv {{$svrType}}HTTPHandler) func(c *gin.Context) {
+    return func(c *gin.Context) {
+        var (
+			err error
+            in  = new({{.Request}})
+            out = new({{.Reply}})
+            ctx = context.TODO()
+        )
+
+        if err = c.ShouldBind(in{{.Body}}); err != nil {
+            c.AbortWithStatusJSON(400, gin.H{"err": err.Error()})
+            return
+        }
+
+        // execute
+        out, err = srv.{{.Name}}(ctx, in)
+        if err != nil {
+            c.AbortWithStatusJSON(500, gin.H{"err": err.Error()})
+            return
+        }
+        
+        c.JSON(200, out)
+    }
+}
+{{end}}
+// Client defines call remote server client and implement selector
+type Client interface{
+  Call(ctx context.Context, req, rsp interface{}) error
+}
+
+// {{.ServiceType}}HTTPClient defines call {{.ServiceType}}Server client
+type {{.ServiceType}}HTTPClient interface {
+{{- range .Methods}}
+    {{.Name}}(context.Context, *{{.Request}}) (*{{.Reply}}, error)
+{{- end}}
+}
+
+// {{.ServiceType}}HTTPClientImpl implement {{.ServiceType}}HTTPClient
+type {{.ServiceType}}HTTPClientImpl struct {
+	cli Client
+}
+
+func New{{.ServiceType}}HTTPClient(cli Client) {{.ServiceType}}HTTPClient {
+	return &{{.ServiceType}}HTTPClientImpl{
+		cli: cli,
+	}
 }
 
 {{range .Methods}}
-func _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(srv {{$svrType}}HTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in {{.Request}}
-		{{- if .HasBody}}
-		if err := ctx.Bind(&in{{.Body}}); err != nil {
-			return err
-		}
-		
-		{{- if not (eq .Body "")}}
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		{{- end}}
-		{{- else}}
-		if err := ctx.BindQuery(&in{{.Body}}); err != nil {
-			return err
-		}
-		{{- end}}
-		{{- if .HasVars}}
-		if err := ctx.BindVars(&in); err != nil {
-			return err
-		}
-		{{- end}}
-		http.SetOperation(ctx,Operation{{$svrType}}{{.OriginalName}})
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.{{.Name}}(ctx, req.(*{{.Request}}))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*{{.Reply}})
-		return ctx.Result(200, reply{{.ResponseBody}})
-	}
-}
-{{end}}
+func (c *{{$svrType}}HTTPClientImpl) {{.Name}}(ctx context.Context, req *{{.Request}})(resp *{{.Reply}} ,err error) {
+	resp = new({{.Reply}})
+	err = c.cli.Call(ctx, req, resp)
 
-type {{.ServiceType}}HTTPClient interface {
-{{- range .MethodSets}}
-	{{.Name}}(ctx context.Context, req *{{.Request}}, opts ...http.CallOption) (rsp *{{.Reply}}, err error) 
-{{- end}}
-}
-	
-type {{.ServiceType}}HTTPClientImpl struct{
-	cc *http.Client
-}
-	
-func New{{.ServiceType}}HTTPClient (client *http.Client) {{.ServiceType}}HTTPClient {
-	return &{{.ServiceType}}HTTPClientImpl{client}
-}
-
-{{range .MethodSets}}
-func (c *{{$svrType}}HTTPClientImpl) {{.Name}}(ctx context.Context, in *{{.Request}}, opts ...http.CallOption) (*{{.Reply}}, error) {
-	var out {{.Reply}}
-	pattern := "{{.Path}}"
-	path := binding.EncodeURL(pattern, in, {{not .HasBody}})
-	opts = append(opts, http.Operation(Operation{{$svrType}}{{.OriginalName}}))
-	opts = append(opts, http.PathTemplate(pattern))
-	{{if .HasBody -}}
-	err := c.cc.Invoke(ctx, "{{.Method}}", path, in{{.Body}}, &out{{.ResponseBody}}, opts...)
-	{{else -}} 
-	err := c.cc.Invoke(ctx, "{{.Method}}", path, nil, &out{{.ResponseBody}}, opts...)
-	{{end -}}
-	if err != nil {
-		return nil, err
-	}
-	return &out, err
+	return
 }
 {{end}}
 `
 
 type serviceDesc struct {
-	ServiceType string // Greeter
-	ServiceName string // helloworld.Greeter
-	Metadata    string // api/helloworld/helloworld.proto
+	ServiceType string
+	ServiceName string
+	Metadata    string
 	Methods     []*methodDesc
 	MethodSets  map[string]*methodDesc
 }
 
 type methodDesc struct {
 	// method
-	Name         string
-	OriginalName string // The parsed original name
-	Num          int
-	Request      string
-	Reply        string
+	Name    string
+	Num     int
+	Request string
+	Reply   string
 	// http_rule
 	Path         string
 	Method       string
@@ -129,7 +115,7 @@ func (s *serviceDesc) execute() string {
 		s.MethodSets[m.Name] = m
 	}
 	buf := new(bytes.Buffer)
-	tmpl, err := template.New("http").Parse(strings.TrimSpace(httpTemplate))
+	tmpl, err := template.New("http").Parse(strings.TrimSpace(ginTemplate))
 	if err != nil {
 		panic(err)
 	}
