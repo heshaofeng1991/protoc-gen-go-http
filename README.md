@@ -3,7 +3,7 @@
 ## install
 
 ```shell
-$ go get github.com/yusank/protoc-gen-go-http
+$ go install github.com/heshaofeng1991/protoc-gen-go-http@latest 
 ```
 
 ## how to use
@@ -11,9 +11,12 @@ $ go get github.com/yusank/protoc-gen-go-http
 ```shell
 $ make proto
 # or
-$ protoc -I/usr/local/include -I$(GOPATH)/src/github.com/googleapis/googleapis\
- 	--proto_path=$(GOPATH)/src:. --go_out=. --go-http_out=. --go-grpc_out=.\
- 	 path/to/file.proto
+$ protoc -I=. -I=${GOPATH}/pkg/mod \
+	--go_out=. --go_opt=paths=source_relative \
+    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    --govalidators_out=. --govalidators_opt=paths=source_relative \
+    --go-http_out=. --go-http_opt=paths=source_relative \
+   proto/example/example.proto
 ```
 
 基于protoc工具生成golang语言http代码
