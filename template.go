@@ -110,17 +110,14 @@ type methodDesc struct {
 }
 
 func (s *serviceDesc) execute() string {
-	s.MethodSets = make(map[string]*methodDesc)
-	for _, m := range s.Methods {
-		s.MethodSets[m.Name] = m
-	}
 	buf := new(bytes.Buffer)
-	tmpl, err := template.New("http").Parse(strings.TrimSpace(ginTemplate))
+	tmpl, err := template.New("http_server").Parse(strings.TrimSpace(ginTemplate))
 	if err != nil {
 		panic(err)
 	}
-	if err := tmpl.Execute(buf, s); err != nil {
+	if err = tmpl.Execute(buf, s); err != nil {
 		panic(err)
 	}
+
 	return strings.Trim(buf.String(), "\r\n")
 }
