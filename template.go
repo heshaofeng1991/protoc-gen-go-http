@@ -43,6 +43,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(srv {{$svrType}}HTTPHandler) f
             return
         }
 		
+
 		{{- if not (eq .Body "")}}
 		if err = c.ShouldBindQuery(in}); err != nil {
             c.AbortWithStatusJSON(400, gin.H{"err": err.Error()})
