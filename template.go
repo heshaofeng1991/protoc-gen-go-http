@@ -37,7 +37,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(srv {{$svrType}}HTTPHandler) f
             ctx = context.TODO()
         )
 
-       {{- if .HasBody}}
+		{{- if .HasBody}}
 		if err = c.ShouldBind(in{{.Body}}); err != nil {
             c.AbortWithStatusJSON(400, gin.H{"err": err.Error()})
             return
