@@ -1,5 +1,9 @@
 # protoc-gen-go-http
-基于protoc工具生成golang语言http代码
+```text
+基于protoc工具生成golang语言gin web框架的 http代码，非常感谢kratos这个框架。
+
+1. 基于pb生成grpc validate现在有很多脚手架，成熟框架了。
+```
 
 ## 安装
 
@@ -26,4 +30,10 @@ $ protoc -I=. -I=${GOPATH}/pkg/mod \
   --go-http_out=. --go-http_opt=paths=source_relative \
   --gogofaster_out=plugin=gprc:. --gogofaster_opt=paths=source_relative \
   proto/example/example.proto
+```
+
+## 后续可以在拓展的方向
+```text
+protoc-gen-errors
+protoc-gen-swagger
 ```
