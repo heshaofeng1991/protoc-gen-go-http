@@ -2,6 +2,8 @@
 ```text
 基于protoc工具生成golang语言gin web框架的 http代码，非常感谢kratos这个框架。
 
+目前是制定了gin的方式，其实是可以大部分的框架都是可以的，可以自行修改生成依赖的。
+
 1. 基于pb生成grpc validate现在有很多脚手架，成熟框架了。
 ```
 
